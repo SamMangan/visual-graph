@@ -1,12 +1,5 @@
-#from graph import Graph
+import graph
 
-#g = Graph(True)
-#g.draw()
-
-print("hello")
-import networkx as nx
-import holoviews as hv
-
-G = nx.gnm_random_graph(5,7)
-
-nx.draw(G, nx.spring_layout(G, random_state=100))
+g = graph.Graph(5,12)
+start_node = g.nodes[0]
+g.two_colour(start_node)
