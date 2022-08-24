@@ -1,5 +1,7 @@
-import graph
+from graph import Graph
 
-g = graph.Graph(5,12)
+g = Graph(10)
+#g.draw()
 start_node = g.nodes[0]
 g.two_colour(start_node)
+#g.bfs(start_node)
