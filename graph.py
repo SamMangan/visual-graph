@@ -9,8 +9,23 @@ class Graph(DrawableGraph):
   def __init__(self, nodes):
     super().__init__(nodes)
 
+  def _dfs(self, node, seen):
+    node.colour = COLOUR_1
+    for neighbour in node.neighbours:
+        if not seen[neighbour]:
+          seen[neighbour] = True
+          self._dfs(neighbour, seen)
+   
+  def dfs(self, start_node):
+    self.clear_colours()
+    
+    seen = {node:False for node in self.nodes}
+    seen[start_node] = True
+    
+    self._dfs(start_node, seen)
+
   def bfs(self, start_node):
-    self.draw()
+    self.clear_colours()
     
     seen = {node:False for node in self.nodes}
     seen[start_node] = True
@@ -23,15 +38,14 @@ class Graph(DrawableGraph):
       if node != start_node:
         if not node.colour:
           node.colour = COLOUR_1
-          self.draw()
 
       for neighbour in node.neighbours:
         if not seen[neighbour]:
-          seen[neighbour] = node
+          seen[neighbour] = True
           queue.append(neighbour)
 
   def two_colour(self, start_node):
-    self.draw()
+    self.clear_colours()
     
     parent = {node:None for node in self.nodes}
 
@@ -43,7 +57,6 @@ class Graph(DrawableGraph):
       if node != start_node:
         if not node.colour:
           node.colour = COLOUR_2 if parent[node].colour == COLOUR_1 else COLOUR_1
-          self.draw()
 
       for neighbour in node.neighbours:
         if not parent[neighbour]:
