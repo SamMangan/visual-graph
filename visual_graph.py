@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import random
 
-class DrawableGraph:
+class VisualGraph:
   """
   A graph with nodes and edges which can be drawn.
   """
@@ -71,8 +71,8 @@ class DrawableGraph:
     bottom_nodes = nodes - top_nodes
     edges = round(nodes + random.uniform(0.1*nodes, 0.3*nodes))
 
-    self._graph = DrawableGraph._connected_bipartite_graph(top_nodes, bottom_nodes, edges)
-    self._nodes = [DrawableGraph.Node(value, self) for value in self._graph.nodes] 
+    self._graph = VisualGraph._connected_bipartite_graph(top_nodes, bottom_nodes, edges)
+    self._nodes = [VisualGraph.Node(value, self) for value in self._graph.nodes] 
 
     # set up drawing
     self._pos = nx.spring_layout(self._graph)

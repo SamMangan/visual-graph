@@ -1,4 +1,4 @@
-from drawable_graph import DrawableGraph
+from visual_graph import VisualGraph
 import random
 
 # Chosen from here: 
@@ -8,7 +8,7 @@ YELLOW = "#FFB000"
 ORANGE = "#FE6100"
 BLUE = "#648FFF"
 
-class Maze(DrawableGraph):
+class Maze(VisualGraph):
   def __init__(self, nodes):
     super().__init__(nodes, update_interval=0)
     self.start = self.nodes[0]

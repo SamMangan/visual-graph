@@ -1,11 +1,11 @@
-from drawable_graph import DrawableGraph
+from visual_graph import VisualGraph
 
 # Chosen from here: 
 # https://davidmathlogic.com/colorblind/#%23648FFF-%23785EF0-%23DC267F-%23FE6100-%23FFB000
 COLOUR_1 = "#DC267F" 
 COLOUR_2 = "#FFB000"
 
-class Graph(DrawableGraph):
+class Graph(VisualGraph):
   def __init__(self, nodes):
     super().__init__(nodes)
 
