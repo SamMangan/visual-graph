@@ -1,1 +1,4 @@
 * logging
+* optionally generate non-bipartitie graphs, grid graphs
+* rename (VisualGraph?)
+* move wrapper to own repo and package it

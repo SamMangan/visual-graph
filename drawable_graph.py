@@ -52,17 +52,21 @@ class DrawableGraph:
     #print("Done")
     return graph
   
-  def __init__(self, nodes, height=4, width=None):
+  def __init__(self, nodes, update_interval=1, height=4, width=None):
     """
     Parameters
     ----------
     nodes : int
         The total number of nodes in the graph
+    update_interval : float, optional
+        The time in seconds between drawing updates (set to 0 for instant updates)
     height : float, optional
-        The height in the inches of the drawn graph
+        The height in inches of the drawn graph
     width : float, optional
-        The width in the inches of the drawn graph
+        The width in inches of the drawn graph
     """
+    self.update_interval = update_interval
+    
     top_nodes = round(random.uniform(0.3*nodes, 0.7*nodes))
     bottom_nodes = nodes - top_nodes
     edges = round(nodes + random.uniform(0.1*nodes, 0.3*nodes))
@@ -77,6 +81,7 @@ class DrawableGraph:
       plt.figure().set_figwidth(width)
 
     self.draw()
+    plt.show(block=False)
 
   def _get_attributes(self, name):
     nx_attributes =  nx.get_node_attributes(self._graph, name)
@@ -124,13 +129,12 @@ class DrawableGraph:
     colours = [colour if colour else "white" for colour in self.colours.values()]
     nx.draw(self._graph, self._pos, with_labels=True, node_color=colours, edgecolors="black")
 
-  def draw(self, pause=0.7):
+  def draw(self):
     """draw the graph, or update the existing drawing if the graph has changed
-
-    Parameters
-    ----------
-    pause : int, optional
-        Time in seconds to wait before the next update (default is 1)
     """
     self._draw()
-    plt.pause(pause)
+
+    if self.update_interval > 0:
+      plt.pause(self.update_interval)
+    else:
+      plt.show(block=False)
