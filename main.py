@@ -1,5 +1,6 @@
 from graph import Graph
 from maze import Maze
+from visual_graph import VisualGraph
 import os
 
 def try_again(error_msg=None):
@@ -39,7 +40,7 @@ def graph_traversals():
       try_again(f"{action} is not a valid action")
 
 def maze_game():
-  m = Maze(10)
+  m = Maze()
 
   while True:
     cmd = input("> ")
