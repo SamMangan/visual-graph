@@ -6,8 +6,8 @@ COLOUR_1 = "#DC267F"
 COLOUR_2 = "#FFB000"
 
 class Graph(VisualGraph):
-  def __init__(self, nodes):
-    super().__init__(nodes)
+  def __init__(self, nodes=10):
+    super().__init__(nodes=nodes)
 
   def _dfs(self, node, seen):
     node.colour = COLOUR_1

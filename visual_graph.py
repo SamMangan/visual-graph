@@ -1,17 +1,18 @@
+import os
 from enum import Enum
 import matplotlib.pyplot as plt
 import networkx as nx
-import random
 
+from utils import grid_layout, create_bipartite_graph, create_grid_graph
+ 
 class VisualGraph:
+  """
+  A graph with nodes and edges which can be drawn.
+  """
 
   class GraphType(Enum):
     BIPARTITE = 0
     GRID = 1
-
-  """
-  A graph with nodes and edges which can be drawn.
-  """
   
   class Node:
     """
@@ -31,18 +32,36 @@ class VisualGraph:
 
     def __repr__(self):
       return f"Node({self.value})"
+      
+    def __eq__(self, other):
+      return self.value == other.value
+
+    def __gt__(self, other):
+      return self.value > other.value
+
+    def _get_attribute(self, name):
+      return self._graph._graph.nodes[self.value].get(name)
+
+    def _set_attribute(self, name, value):
+      self._graph._graph.nodes[self.value][name] = value
 
     @property
     def colour(self):
       """string representing the colour of this Node"""
-      return self._graph.colours.get(self.value)
+      return self._get_attribute("colour")
 
     @colour.setter
     def colour(self, colour):
-      self._graph.colours = {self.value:colour}
+      self._set_attribute("colour", colour)
+      self._graph.draw()
 
     def connect(self, node):
       self._graph.connect(self, node)
+
+    @property
+    def grid_neighbours(self):
+      nx_neighbours = self._graph._graph.neighbors(self.value)
+      return [self._graph._nodes[neighbour] for neighbour in nx_neighbours]
 
     @property
     def neighbours(self):
@@ -50,57 +69,24 @@ class VisualGraph:
       nx_neighbours = self._graph._graph.neighbors(self.value)
       return [self._graph._nodes[neighbour] for neighbour in nx_neighbours]
 
-  def _init_bipartite_graph(self, nodes):
-    top_nodes = round(random.uniform(0.3*nodes, 0.7*nodes))
-    bottom_nodes = nodes - top_nodes
-    edges = round(nodes + random.uniform(0.1*nodes, 0.3*nodes))
+  class Edge:
+    def __init__(self, node1, node2, graph):
+      self.node1 = node1
+      self.node2 = node2
+      self._graph = graph
+      self.value  = 3
 
-    self._graph = None
-    #print(f"Creating a bipartite graph with {n} nodes in one set, {m} nodes in the other set, and {k} edges")
-    while True:
-      self._graph = nx.bipartite.gnmk_random_graph(top_nodes, bottom_nodes, edges)
-      if nx.is_connected(self._graph):
-        break
-      #print("Graph was not connected, trying again")
-    #print("Done")
+    def __repr__(self):
+      return f"Edge({self.node1}, {self.node2})"
 
-    self._layout_function = lambda f: nx_spring_layout(self._graph)
-    
-  def _init_grid_graph(self):
-      self._graph = nx.Graph() 
-      id = 0
-      for row in range(self.grid_height):
-        for col in range(self.grid_width):
-          self.create_node(id)
-          id += 1
+    def set_attribute(self, name, value):
+      self._graph._graph[self.node1][self.node2][name] = value
+      
+    def get_attribute(self, name, default=None):
+      return self._graph._graph.get_edge_data(self.node1, self.node2, {}).get(name, default) 
 
-      # connect nodes in each row
-      for col in range(1, self.grid_width):
-        for row in range(self.grid_height):
-          node = self.grid_width*row + col
-          self.connect(self.get_node(node - 1), self.get_node(node))
-
-      # connect nodes in each column
-      for row in range(1, self.grid_height):
-        for col in range(self.grid_width):
-          node = self.grid_width*row + col
-          self.connect(self.get_node(node - self.grid_width), self.get_node(node))
-
-      # compute the node positions
-      def grid_layout():
-        x_spacing = self.width / (self.grid_width - 1)
-        y_spacing = self.height / (self.grid_height - 1)
-        pos = {}
-        for row in range(self.grid_height):
-          for col in range(self.grid_width):
-            node = self.grid_width*row + col
-            x = col * x_spacing
-            y = row * y_spacing
-            pos[node] = (x, y)
-        return pos
-      self._layout_function = grid_layout
   
-  def __init__(self, type=GraphType.BIPARTITE, nodes=10, grid_height=4, grid_width=4, update_interval=1, height=4, width=6):
+  def __init__(self, type=GraphType.BIPARTITE, nodes=10, grid_width=4, grid_height=4, update_interval=1, width=6, height=4):
     """
     Parameters
     ----------
@@ -110,60 +96,67 @@ class VisualGraph:
           GRID: A graph whose nodes are connected in a 2D grid/lattice pattern
     nodes : int, optional (default=10)
         The total number of nodes in BIPARTITE graph 
-    grid_height : int, optional (default=4)
-        The number of nodes high for the GRID graph
     grid_width : int, optional (default=4)
         The number of nodes wide for the GRID graph
+    grid_height : int, optional (default=4)
+        The number of nodes high for the GRID graph
     update_interval : float, optional (default=1)
         The time in seconds between drawing updates (set to 0 for instant updates)
-    height : float, optional (default=4)
-        The height in inches of the drawn graph
     width : float, optional (default=4)
         The width in inches of the drawn graph
+    height : float, optional (default=4)
+        The height in inches of the drawn graph
     """
     self.update_interval = update_interval
     self._graph = None
     self._pos = None
     self._layout_function = None
     self._nodes = {}
+    self._edges = {}
     self.height = height
     self.width = width
     self.grid_height = grid_height
     self.grid_width = grid_width
+    self.edge_label_attribute = None
+
+    #TODO validate figure and graph height and width values ...
     
     if type == VisualGraph.GraphType.BIPARTITE:
       #TODO log a warning if GRID details were supplied
       if not nodes:
         self._graph = nx.Graph()
         return
-      self._init_bipartite_graph(nodes)
+      self._graph = create_bipartite_graph(nodes)
+      self._layout_function = lambda : nx.spring_layout(self._graph)
     elif type == VisualGraph.GraphType.GRID:
       #TODO log a warning if BIPARTITE details were supplied
-      #TODO raise exception if height and width < 1
-      self._init_grid_graph()
+      self._graph = create_grid_graph(self.grid_width, self.grid_height)
+      self._layout_function = lambda : grid_layout(self.width, self.height, self.grid_width, self.grid_height)
     else:
       assert False, f"{type} is not a supported GraphType"
 
     self._pos = self._layout_function() 
     self._nodes = {value: VisualGraph.Node(value, self) for value in self._graph.nodes}
+    self._edges = {(node1, node2): VisualGraph.Edge(node1, node2, self) for node1, node2 in self._graph.edges}
 
     # set up drawing 
     plt.figure().set_size_inches(self.width, self.height)
     self.draw()
 
-  def create_node(self, value):
+  def create_node(self, value):      #self._graph.colours = {self.value:colour}
+
     node = VisualGraph.Node(value, self)
     self._graph.add_node(value)
     self._nodes[value] = node #TODO make this a property
-    #self._pos = self._layout_function(self._graph)
     return node
 
   def connect(self, node1, node2):
     self._graph.add_edge(node1.value, node2.value)
-    #self._pos = self._layout_function(self._graph)
+    self._edges[(node1.value, node2.value)] =  VisualGraph.Edge(node1.value, node2.value, self)
 
   def disconnect(self, node1, node2):
     self._graph.remove_edge(node1.value, node2.value)
+    self._edges.pop((node1.value, node2.value))
 
   def _get_attributes(self, name):
     nx_attributes =  nx.get_node_attributes(self._graph, name)
@@ -177,6 +170,16 @@ class VisualGraph:
     """list of Nodes in the graph"""
     return list(self._nodes.values())
 
+  @property
+  def edges(self):
+    """list of edges in the graph"""
+    return list(self._edges.values())
+
+  def get_edge_between(self, node1, node2):
+    if node1 > node2:
+      node1, node2 = node2, node1 # reorder
+    return self._edges[(node1.value, node2.value)]
+  
   def get_node(self, value):
     """get a node from the graph
 
@@ -210,12 +213,16 @@ class VisualGraph:
   def _draw(self):
     colours = [colour if colour else "white" for colour in self.colours.values()]
     nx.draw(self._graph, self._pos, with_labels=True, node_color=colours, edgecolors="black")
+    edge_labels = {nodes:edge.get_attribute(self.edge_label_attribute, 0) for nodes, edge in self._edges.items()}
+    nx.draw_networkx_edge_labels(self._graph, edge_labels=edge_labels, pos=self._layout_function())
 
-  def draw(self, force_refresh=False):
+  def draw(self, force_refresh=False, force_layout_refresh=False):
     """draw the graph, or update the existing drawing if the graph has changed
     """
     if force_refresh:
       plt.clf()
+    if force_layout_refresh:
+      self._pos = self._layout_function()
     
     self._draw()
 

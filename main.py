@@ -1,7 +1,6 @@
+import os
 from graph import Graph
 from maze import Maze
-from visual_graph import VisualGraph
-import os
 
 def try_again(error_msg=None):
   if error_msg:
@@ -47,7 +46,7 @@ def maze_game():
     name, *args = cmd.split()
 
     if name == "regenerate":
-      m = Maze(10)
+      m = Maze()
       
     elif name == "goto":
 
@@ -68,4 +67,10 @@ def maze_game():
       
   
 #graph_traversals()
-maze_game()
+#maze_game()
+print("before")
+import matplotlib.pyplot as plt
+plt.plot([1, 2, 3, 4])
+plt.ylabel('some numbers')
+plt.show(block=False)
+print("after")
