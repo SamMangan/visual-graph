@@ -31,7 +31,7 @@ class VisualNode:
     self._initialised.add(value)
 
   def __repr__(self):
-    return f"Node({self.value})"
+    return f"VisualNode({self.value})"
 
   def __hash__(self):
     return hash(self.value)

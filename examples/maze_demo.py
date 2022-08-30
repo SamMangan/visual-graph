@@ -29,8 +29,7 @@ class Maze(VisualGraph):
     edge_energies = {(0,1) : 1, (6,10) : 2}
     for (id1, id2), energy in edge_energies.items():
       edge = self.get_edge_between(VisualNode(id1), VisualNode(id2))
-      edge.set_attribute("energy", energy)
-    self.edge_label_attribute = "energy"
+      edge.value = energy
     
     self.draw(force_refresh=True)
 
@@ -48,7 +47,7 @@ class Maze(VisualGraph):
     if not self.auto_redraw:
       self.draw()
 
-    energy = edge.get_attribute("energy", default=0)
+    energy = edge.value
     self.energy -= energy
     if self.energy > 0:
       print(f"Used {energy} points of energy. Remaining energy: {self.energy}")
@@ -69,7 +68,8 @@ class Maze(VisualGraph):
 
 
 def maze_game():
-  m = Maze(ascii_mode=True, auto_redraw=False)
+  ascii_mode = False
+  m = Maze(ascii_mode=ascii_mode, auto_redraw=(not ascii_mode))
 
   while True:
     cmd = input("> ")

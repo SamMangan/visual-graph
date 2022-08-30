@@ -51,7 +51,7 @@ class VisualGraph:
     self._width = width
     self._grid_height = grid_height
     self._grid_width = grid_width
-    self.edge_label_attribute = None
+    self.edge_labels = True
     self._ascii_mode = ascii_mode
     self._auto_redraw = auto_redraw
 
@@ -123,6 +123,8 @@ class VisualGraph:
     node2 : VisualNode
       Second node
     """
+    if node1 > node2:
+      node1, node2 = node2, node1
     self._graph.remove_edge(node1.value, node2.value)
     self._edges.pop((node1.value, node2.value))
 
@@ -212,9 +214,13 @@ class VisualGraph:
 
     nx.draw(self._graph, self._pos, with_labels=True, node_color=colours, edgecolors="black", **additional_kwargs)
 
-    if self.edge_label_attribute:
-      edge_labels = {nodes:edge.get_attribute(self.edge_label_attribute, 0) for nodes, edge in self._edges.items()}
+    if self.edge_labels:
+      edge_labels = {nodes:edge.value for nodes, edge in self._edges.items()}
       nx.draw_networkx_edge_labels(self._graph, edge_labels=edge_labels, pos=self._layout_function())
+
+  def refresh(self):
+    """redraw the graph, clearing the existing drawing first"""
+    self.draw(force_refresh=True)
 
   def draw(self, force_refresh=False, force_layout_refresh=False):
     """draw the graph, or update the existing drawing if the graph has changed
