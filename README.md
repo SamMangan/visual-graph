@@ -1,3 +1,3 @@
-# graph-traversals
+# visual-graph
 
-possible lesson: various simple problems solvable by graph traversals
+wrapper around networkx/matplotlib for teaching graph stuff
