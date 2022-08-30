@@ -18,7 +18,19 @@ class VisualGraph:
     """
     A node containing a value and belonging to a graph.
     """
-    def __init__(self, value, graph):
+
+    _instances = {} # map of values to instances
+    _initialised = set() # set of values for which instances have been initialised
+    def __new__(cls, *args, **kwargs):
+      # only allow one Node instance per value
+      value = args[0]
+      if value in cls._instances:
+        return cls._instances[value]
+      instance = super().__new__(cls)
+      cls._instances[value] = instance
+      return instance
+    
+    def __init__(self, value, graph=None):
       """
       Parameters
       ----------
@@ -27,8 +39,12 @@ class VisualGraph:
       graph : DrawableGraph
           The graph the Node belongs to
       """
+      if value in self._initialised:
+        return
       self.value = value
+      assert graph is not None
       self._graph = graph
+      self._initialised.add(value)
 
     def __repr__(self):
       return f"Node({self.value})"

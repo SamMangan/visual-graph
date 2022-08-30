@@ -18,7 +18,7 @@ class Maze(VisualGraph):
     
     missing_links = [(0,4), (1,2), (9, 10)]
     for id1, id2 in missing_links:
-      self.disconnect(self.get_node(id1), self.get_node(id2))
+      self.disconnect(VisualGraph.Node(id1), VisualGraph.Node(id2))
       
     self.items = [self.get_node(id) for id in [8, 10, 7]]
     self.finish = self.get_node(3) 

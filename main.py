@@ -69,6 +69,13 @@ def maze_game():
 #graph_traversals()
 maze_game()
 
+# from visual_graph import VisualGraph
+# g = VisualGraph(nodes=0)
+# n1 = VisualGraph.Node(10, g)
+# n2 = VisualGraph.Node(5, g)
+# n3 = VisualGraph.Node(5, g)
+# print(VisualGraph.Node._instances)
+
 #print("before")
 #import matplotlib
 #matplotlib.use('module://drawilleplot')
