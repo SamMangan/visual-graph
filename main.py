@@ -11,7 +11,7 @@ def graph_traversals():
   g = Graph(10)
 
   while True:
-    os.system("clear")
+    #os.system("clear")
     action = input("Choose an action: [r]egenerate, [b]fs, [d]fs, [t]wo_colour\n")
     
     if action == "r":
@@ -39,7 +39,7 @@ def graph_traversals():
       try_again(f"{action} is not a valid action")
 
 def maze_game():
-  m = Maze()
+  m = Maze(ascii_mode=True)
 
   while True:
     cmd = input("> ")
@@ -67,10 +67,15 @@ def maze_game():
       
   
 #graph_traversals()
-#maze_game()
-print("before")
-import matplotlib.pyplot as plt
-plt.plot([1, 2, 3, 4])
-plt.ylabel('some numbers')
-plt.show(block=False)
-print("after")
+maze_game()
+
+#print("before")
+#import matplotlib
+#matplotlib.use('module://drawilleplot')
+#import matplotlib.pyplot as plt
+#plt.plot([1, 2, 3, 4])
+#plt.ylabel('some numbers')
+##plt.show(block=False)
+#plt.show()
+#print("after")
+#input()

@@ -8,8 +8,8 @@ ORANGE = "#FE6100"
 BLUE = "#648FFF"
 
 class Maze(VisualGraph):
-  def __init__(self):
-    super().__init__(type=VisualGraph.GraphType.GRID, grid_width=4, grid_height=3, update_interval=0)
+  def __init__(self, ascii_mode=False):
+    super().__init__(type=VisualGraph.GraphType.GRID, grid_width=4, grid_height=3, update_interval=0, ascii_mode=ascii_mode)
     self.start = self.nodes[0]
     self.current = self.start
     self.current.colour = YELLOW
@@ -40,6 +40,11 @@ class Maze(VisualGraph):
       return True
 
     edge = self.get_edge_between(self.current, node)
+    
+    self.current.colour = None
+    self.current = node
+    self.current.colour = YELLOW
+
     energy = edge.get_attribute("energy", default=0)
     self.energy -= energy
     if self.energy > 0:
@@ -47,10 +52,6 @@ class Maze(VisualGraph):
     else:
       print(f"Game over! Score: {self.points}") 
       return False
-    
-    self.current.colour = None
-    self.current = node
-    self.current.colour = YELLOW
 
     if self.current == self.finish:
       print(f"Game over! Score: {self.points}") 

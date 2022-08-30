@@ -1,7 +1,7 @@
-import os
 from enum import Enum
 import matplotlib.pyplot as plt
 import networkx as nx
+import os, time
 
 from utils import grid_layout, create_bipartite_graph, create_grid_graph
  
@@ -32,6 +32,9 @@ class VisualGraph:
 
     def __repr__(self):
       return f"Node({self.value})"
+
+    def __hash__(self):
+      return hash(self.value)
       
     def __eq__(self, other):
       return self.value == other.value
@@ -56,12 +59,14 @@ class VisualGraph:
       self._graph.draw()
 
     def connect(self, node):
-      self._graph.connect(self, node)
+      """Add an edge to the provided node
 
-    @property
-    def grid_neighbours(self):
-      nx_neighbours = self._graph._graph.neighbors(self.value)
-      return [self._graph._nodes[neighbour] for neighbour in nx_neighbours]
+      Parameters
+      ----------
+      node : VisualGraph.Node
+         Node to connect to
+      """
+      self._graph.connect(self, node)
 
     @property
     def neighbours(self):
@@ -86,7 +91,7 @@ class VisualGraph:
       return self._graph._graph.get_edge_data(self.node1, self.node2, {}).get(name, default) 
 
   
-  def __init__(self, type=GraphType.BIPARTITE, nodes=10, grid_width=4, grid_height=4, update_interval=1, width=6, height=4):
+  def __init__(self, type=GraphType.BIPARTITE, nodes=10, grid_width=4, grid_height=4, update_interval=1, width=6, height=4, ascii_mode=False):
     """
     Parameters
     ----------
@@ -106,6 +111,8 @@ class VisualGraph:
         The width in inches of the drawn graph
     height : float, optional (default=4)
         The height in inches of the drawn graph
+    ascii_mode : boolean, optional (default=False)
+        If True, render the graph as an ASCII graphic in a terminal.
     """
     self.update_interval = update_interval
     self._graph = None
@@ -113,11 +120,16 @@ class VisualGraph:
     self._layout_function = None
     self._nodes = {}
     self._edges = {}
-    self.height = height
-    self.width = width
-    self.grid_height = grid_height
-    self.grid_width = grid_width
+    self._height = height
+    self._width = width
+    self._grid_height = grid_height
+    self._grid_width = grid_width
     self.edge_label_attribute = None
+    self._ascii_mode = ascii_mode
+
+    if self.ascii_mode:
+      import matplotlib
+      matplotlib.use('module://drawilleplot')
 
     #TODO validate figure and graph height and width values ...
     
@@ -130,8 +142,8 @@ class VisualGraph:
       self._layout_function = lambda : nx.spring_layout(self._graph)
     elif type == VisualGraph.GraphType.GRID:
       #TODO log a warning if BIPARTITE details were supplied
-      self._graph = create_grid_graph(self.grid_width, self.grid_height)
-      self._layout_function = lambda : grid_layout(self.width, self.height, self.grid_width, self.grid_height)
+      self._graph = create_grid_graph(self._grid_width, self._grid_height)
+      self._layout_function = lambda : grid_layout(self._width, self._height, self._grid_width, self._grid_height)
     else:
       assert False, f"{type} is not a supported GraphType"
 
@@ -140,21 +152,45 @@ class VisualGraph:
     self._edges = {(node1, node2): VisualGraph.Edge(node1, node2, self) for node1, node2 in self._graph.edges}
 
     # set up drawing 
-    plt.figure().set_size_inches(self.width, self.height)
+    plt.figure().set_size_inches(self._width, self._height)
     self.draw()
 
-  def create_node(self, value):      #self._graph.colours = {self.value:colour}
+  def create_node(self, value):
+    """Create a Node with the provided value and add it two the graph
 
+    Parameters
+    ----------
+    value : int
+      Value of the Node
+    """
     node = VisualGraph.Node(value, self)
     self._graph.add_node(value)
     self._nodes[value] = node #TODO make this a property
     return node
 
   def connect(self, node1, node2):
+    """Add an edge between the two provided Nodes
+
+    Parameters
+    ----------
+    node1 : VisualGraph.Node
+      First node
+    node2 : VisualGraph.Node
+      Second node
+    """
     self._graph.add_edge(node1.value, node2.value)
     self._edges[(node1.value, node2.value)] =  VisualGraph.Edge(node1.value, node2.value, self)
 
   def disconnect(self, node1, node2):
+    """Remove the edge between the two provided Nodes
+
+    Parameters
+    ----------
+    node1 : VisualGraph.Node
+      First node
+    node2 : VisualGraph.Node
+      Second node
+    """
     self._graph.remove_edge(node1.value, node2.value)
     self._edges.pop((node1.value, node2.value))
 
@@ -176,6 +212,15 @@ class VisualGraph:
     return list(self._edges.values())
 
   def get_edge_between(self, node1, node2):
+    """return the Edge between the two provided Nodes
+
+    Parameters
+    ----------
+    node1 : VisualGraph.Node
+      First node
+    node2 : VisualGraph.Node
+      Second node
+    """
     if node1 > node2:
       node1, node2 = node2, node1 # reorder
     return self._edges[(node1.value, node2.value)]
@@ -200,6 +245,11 @@ class VisualGraph:
     """dictionary mapping graph Nodes to their colours"""
     return self._get_attributes("colour") 
 
+  @property
+  def ascii_mode(self):
+    """Returns whether the graph should be drawn as ASCII in the terminal"""
+    return self._ascii_mode
+
   @colours.setter
   def colours(self, value):
     self._set_attributes("colour", value)
@@ -212,21 +262,51 @@ class VisualGraph:
 
   def _draw(self):
     colours = [colour if colour else "white" for colour in self.colours.values()]
-    nx.draw(self._graph, self._pos, with_labels=True, node_color=colours, edgecolors="black")
-    edge_labels = {nodes:edge.get_attribute(self.edge_label_attribute, 0) for nodes, edge in self._edges.items()}
-    nx.draw_networkx_edge_labels(self._graph, edge_labels=edge_labels, pos=self._layout_function())
+
+    additional_kwargs = {}
+    if self.ascii_mode:
+      colour2width = {colour:(i*10+1) for i, colour in enumerate(sorted(list(set(colours) - {"white"})))}
+      colour2width["white"] = 1
+      additional_kwargs["verticalalignment"]   = "bottom"
+      additional_kwargs["horizontalalignment"] = "left"
+      additional_kwargs["linewidths"]          = [colour2width[colour] for colour in colours]
+
+    nx.draw(self._graph, self._pos, with_labels=True, node_color=colours, edgecolors="black", **additional_kwargs)
+
+    if self.edge_label_attribute:
+      edge_labels = {nodes:edge.get_attribute(self.edge_label_attribute, 0) for nodes, edge in self._edges.items()}
+      nx.draw_networkx_edge_labels(self._graph, edge_labels=edge_labels, pos=self._layout_function())
 
   def draw(self, force_refresh=False, force_layout_refresh=False):
     """draw the graph, or update the existing drawing if the graph has changed
+
+    Parameters
+    ----------
+    force_refresh : boolean, optional (default=False)
+       if True, clears the existing drawing before redrawing. Useful if edges or nodes have been removed since the last drawing.
+    force_layout_refresh : boolean, optional (default=False)
+       if True, recomputes the positions of the nodes before drawing. Useful if nodes have been added or removed since the last drawing. 
     """
+
     if force_refresh:
       plt.clf()
     if force_layout_refresh:
       self._pos = self._layout_function()
+
+    if self.ascii_mode:
+      plt.clf()
+      os.system("clear")
     
     self._draw()
 
     if self.update_interval > 0:
-      plt.pause(self.update_interval)
+      if self.ascii_mode:
+        plt.show()
+        time.sleep(self.update_interval)
+      else:
+        plt.pause(self.update_interval)
     else:
-      plt.show(block=False)
+      if self.ascii_mode:
+        plt.show()
+      else:
+        plt.show(block=False)
