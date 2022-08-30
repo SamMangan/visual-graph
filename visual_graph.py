@@ -4,110 +4,19 @@ import networkx as nx
 import os, time
 
 from utils import grid_layout, create_bipartite_graph, create_grid_graph
+from visual_node import VisualNode
+from visual_edge import VisualEdge
  
 class VisualGraph:
   """
   A graph with nodes and edges which can be drawn.
   """
-
+  
   class GraphType(Enum):
     BIPARTITE = 0
     GRID = 1
   
-  class Node:
-    """
-    A node containing a value and belonging to a graph.
-    """
-
-    _instances = {} # map of values to instances
-    _initialised = set() # set of values for which instances have been initialised
-    def __new__(cls, *args, **kwargs):
-      # only allow one Node instance per value
-      value = args[0]
-      if value in cls._instances:
-        return cls._instances[value]
-      instance = super().__new__(cls)
-      cls._instances[value] = instance
-      return instance
-    
-    def __init__(self, value, graph=None):
-      """
-      Parameters
-      ----------
-      value : int
-          The value of the Node
-      graph : DrawableGraph
-          The graph the Node belongs to
-      """
-      if value in self._initialised:
-        return
-      self.value = value
-      assert graph is not None
-      self._graph = graph
-      self._initialised.add(value)
-
-    def __repr__(self):
-      return f"Node({self.value})"
-
-    def __hash__(self):
-      return hash(self.value)
-      
-    def __eq__(self, other):
-      return self.value == other.value
-
-    def __gt__(self, other):
-      return self.value > other.value
-
-    def _get_attribute(self, name):
-      return self._graph._graph.nodes[self.value].get(name)
-
-    def _set_attribute(self, name, value):
-      self._graph._graph.nodes[self.value][name] = value
-
-    @property
-    def colour(self):
-      """string representing the colour of this Node"""
-      return self._get_attribute("colour")
-
-    @colour.setter
-    def colour(self, colour):
-      self._set_attribute("colour", colour)
-      self._graph.draw()
-
-    def connect(self, node):
-      """Add an edge to the provided node
-
-      Parameters
-      ----------
-      node : VisualGraph.Node
-         Node to connect to
-      """
-      self._graph.connect(self, node)
-
-    @property
-    def neighbours(self):
-      """list of Nodes neigbouring this Node in the graph"""
-      nx_neighbours = self._graph._graph.neighbors(self.value)
-      return [self._graph._nodes[neighbour] for neighbour in nx_neighbours]
-
-  class Edge:
-    def __init__(self, node1, node2, graph):
-      self.node1 = node1
-      self.node2 = node2
-      self._graph = graph
-      self.value  = 3
-
-    def __repr__(self):
-      return f"Edge({self.node1}, {self.node2})"
-
-    def set_attribute(self, name, value):
-      self._graph._graph[self.node1][self.node2][name] = value
-      
-    def get_attribute(self, name, default=None):
-      return self._graph._graph.get_edge_data(self.node1, self.node2, {}).get(name, default) 
-
-  
-  def __init__(self, type=GraphType.BIPARTITE, nodes=10, grid_width=4, grid_height=4, update_interval=1, width=6, height=4, ascii_mode=False):
+  def __init__(self, type=GraphType.BIPARTITE, nodes=10, grid_width=4, grid_height=4, update_interval=1, width=6, height=4, ascii_mode=False, auto_redraw=True):
     """
     Parameters
     ----------
@@ -129,6 +38,8 @@ class VisualGraph:
         The height in inches of the drawn graph
     ascii_mode : boolean, optional (default=False)
         If True, render the graph as an ASCII graphic in a terminal.
+    auto_redraw : boolean, optional (default=True)
+        If True, redraw the graph whenever it changes 
     """
     self.update_interval = update_interval
     self._graph = None
@@ -142,6 +53,10 @@ class VisualGraph:
     self._grid_width = grid_width
     self.edge_label_attribute = None
     self._ascii_mode = ascii_mode
+    self._auto_redraw = auto_redraw
+
+    VisualNode._instances = {}
+    VisualNode._initialised = set()
 
     if self.ascii_mode:
       import matplotlib
@@ -164,12 +79,13 @@ class VisualGraph:
       assert False, f"{type} is not a supported GraphType"
 
     self._pos = self._layout_function() 
-    self._nodes = {value: VisualGraph.Node(value, self) for value in self._graph.nodes}
-    self._edges = {(node1, node2): VisualGraph.Edge(node1, node2, self) for node1, node2 in self._graph.edges}
+    self._nodes = {value: VisualNode(value, self) for value in self._graph.nodes}
+    self._edges = {(node1, node2): VisualEdge(node1, node2, self) for node1, node2 in self._graph.edges}
 
     # set up drawing 
     plt.figure().set_size_inches(self._width, self._height)
-    self.draw()
+    if self._auto_redraw:
+      self.draw(force_refresh=True)
 
   def create_node(self, value):
     """Create a Node with the provided value and add it two the graph
@@ -179,7 +95,7 @@ class VisualGraph:
     value : int
       Value of the Node
     """
-    node = VisualGraph.Node(value, self)
+    node = VisualNode(value, self)
     self._graph.add_node(value)
     self._nodes[value] = node #TODO make this a property
     return node
@@ -189,22 +105,22 @@ class VisualGraph:
 
     Parameters
     ----------
-    node1 : VisualGraph.Node
+    node1 : VisualNode
       First node
-    node2 : VisualGraph.Node
+    node2 : VisualNode
       Second node
     """
     self._graph.add_edge(node1.value, node2.value)
-    self._edges[(node1.value, node2.value)] =  VisualGraph.Edge(node1.value, node2.value, self)
+    self._edges[(node1.value, node2.value)] =  VisualEdge(node1.value, node2.value, self)
 
   def disconnect(self, node1, node2):
     """Remove the edge between the two provided Nodes
 
     Parameters
     ----------
-    node1 : VisualGraph.Node
+    node1 : VisualNode
       First node
-    node2 : VisualGraph.Node
+    node2 : VisualNode
       Second node
     """
     self._graph.remove_edge(node1.value, node2.value)
@@ -232,9 +148,9 @@ class VisualGraph:
 
     Parameters
     ----------
-    node1 : VisualGraph.Node
+    node1 : VisualNode
       First node
-    node2 : VisualGraph.Node
+    node2 : VisualNode
       Second node
     """
     if node1 > node2:
@@ -266,15 +182,22 @@ class VisualGraph:
     """Returns whether the graph should be drawn as ASCII in the terminal"""
     return self._ascii_mode
 
+  @property
+  def auto_redraw(self):
+    """Returns whether the graph should be automatically redrawn whenever it changes"""
+    return self._auto_redraw
+
   @colours.setter
   def colours(self, value):
     self._set_attributes("colour", value)
-    self.draw()
+    if self._auto_redraw:
+      self.draw()
 
   def clear_colours(self):
     """clear the colours of all Nodes in graph"""
     self.colours = {node:None for node in self._nodes}
-    self.draw()
+    if self._auto_redraw:
+      self.draw()
 
   def _draw(self):
     colours = [colour if colour else "white" for colour in self.colours.values()]

@@ -1,4 +1,4 @@
-from visual_graph import VisualGraph
+from visual_graph import VisualGraph, VisualNode
 
 # Chosen from here: 
 # https://davidmathlogic.com/colorblind/#%23648FFF-%23785EF0-%23DC267F-%23FE6100-%23FFB000
@@ -8,8 +8,8 @@ ORANGE = "#FE6100"
 BLUE = "#648FFF"
 
 class Maze(VisualGraph):
-  def __init__(self, ascii_mode=False):
-    super().__init__(type=VisualGraph.GraphType.GRID, grid_width=4, grid_height=3, update_interval=0, ascii_mode=ascii_mode)
+  def __init__(self, ascii_mode=False, auto_redraw=True):
+    super().__init__(type=VisualGraph.GraphType.GRID, grid_width=4, grid_height=3, update_interval=0, ascii_mode=ascii_mode, auto_redraw=auto_redraw)
     self.start = self.nodes[0]
     self.current = self.start
     self.current.colour = YELLOW
@@ -18,17 +18,17 @@ class Maze(VisualGraph):
     
     missing_links = [(0,4), (1,2), (9, 10)]
     for id1, id2 in missing_links:
-      self.disconnect(VisualGraph.Node(id1), VisualGraph.Node(id2))
+      self.disconnect(VisualNode(id1), VisualNode(id2))
       
-    self.items = [self.get_node(id) for id in [8, 10, 7]]
-    self.finish = self.get_node(3) 
+    self.items = [VisualNode(id) for id in [8, 10, 7]]
+    self.finish = VisualNode(3) 
     for item in self.items:
       item.colour = ORANGE
     self.finish.colour = PINK
 
     edge_energies = {(0,1) : 1, (6,10) : 2}
     for (id1, id2), energy in edge_energies.items():
-      edge = self.get_edge_between(self.get_node(id1), self.get_node(id2))
+      edge = self.get_edge_between(VisualNode(id1), VisualNode(id2))
       edge.set_attribute("energy", energy)
     self.edge_label_attribute = "energy"
     
@@ -44,6 +44,9 @@ class Maze(VisualGraph):
     self.current.colour = None
     self.current = node
     self.current.colour = YELLOW
+
+    if not self.auto_redraw:
+      self.draw()
 
     energy = edge.get_attribute("energy", default=0)
     self.energy -= energy
@@ -63,3 +66,31 @@ class Maze(VisualGraph):
       print(f"Received 1 point. Total points: {self.points}")
     
     return True
+
+
+def maze_game():
+  m = Maze(ascii_mode=True, auto_redraw=False)
+
+  while True:
+    cmd = input("> ")
+    name, *args = cmd.split()
+
+    if name == "regenerate":
+      m = Maze()
+      
+    elif name == "goto":
+
+      if len(args) < 1:
+        print("1 argument expected")
+        continue
+      value = args[0]
+      if not value.isnumeric():
+        print(f"{value} is not a number")
+        continue
+      node = m.get_node(int(value))
+      if not node: 
+        print(f"{value} is not in the graph")
+        continue
+
+      if not m.goto(node):
+        break
