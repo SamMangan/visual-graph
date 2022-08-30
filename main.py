@@ -39,7 +39,7 @@ def graph_traversals():
       try_again(f"{action} is not a valid action")
 
 def maze_game():
-  m = Maze(ascii_mode=True)
+  m = Maze(ascii_mode=False)
 
   while True:
     cmd = input("> ")
