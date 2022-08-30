@@ -3,5 +3,6 @@ __pycache__/
 .breakpoints
 .replit
 *.swp
-pyproject.toml
+*poetry.lock
 replit.nix
+*.egg-info/
