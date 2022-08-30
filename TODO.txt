@@ -1,6 +1,3 @@
 * logging
-* options for either simple bipartite, grid, or random graph
-  * force_grid/force_bipartite?
-* move wrapper to own repo and package it
 * error handling (and documentation)
-* only allow one Node per value to exist
+* tests lol
